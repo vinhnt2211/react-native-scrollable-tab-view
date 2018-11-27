@@ -11,7 +11,8 @@ const {
   Platform,
   StyleSheet,
   ViewPagerAndroid,
-  InteractionManager
+  InteractionManager,
+  Easing
 } = ReactNative;
 const TimerMixin = require("react-timer-mixin");
 
@@ -19,6 +20,7 @@ const SceneComponent = require("./SceneComponent");
 const DefaultTabBar = require("./DefaultTabBar");
 const ScrollableTabBar = require("./ScrollableTabBar");
 
+const { width } = Dimensions.get("window");
 const AnimatedViewPagerAndroid =
   Platform.OS === "android"
     ? Animated.createAnimatedComponent(ViewPagerAndroid)
@@ -66,6 +68,7 @@ const ScrollableTabView = createReactClass({
   },
 
   getInitialState() {
+    this.animatedValues = new Animated.Value(1);
     const containerWidth = Dimensions.get("window").width;
     let scrollValue;
     let scrollXIOS;
@@ -124,6 +127,21 @@ const ScrollableTabView = createReactClass({
     if (props.page >= 0 && props.page !== this.state.currentPage) {
       this.goToPage(props.page);
     }
+
+    if (props.showHeader && !this.props.showHeader) {
+      Animated.timing(this.animatedValues, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.linear
+      }).start();
+    }
+    if (!props.showHeader && this.props.showHeader) {
+      Animated.timing(this.animatedValues, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.linear
+      }).start();
+    }
   },
 
   componentWillUnmount() {
@@ -139,13 +157,11 @@ const ScrollableTabView = createReactClass({
     if (Platform.OS === "ios") {
       const offset = pageNumber * this.state.containerWidth;
       if (this.scrollView) {
-        this.scrollView
-          .getNode()
-          .scrollTo({
-            x: offset,
-            y: 0,
-            animated: !this.props.scrollWithoutAnimation
-          });
+        this.scrollView.getNode().scrollTo({
+          x: offset,
+          y: 0,
+          animated: !this.props.scrollWithoutAnimation
+        });
       }
     } else {
       if (this.scrollView) {
@@ -449,7 +465,38 @@ const ScrollableTabView = createReactClass({
     if (this.props.tabStyle) {
       tabBarProps.tabStyle = this.props.tabStyle;
     }
-
+    const { headerHeight } = this.props;
+    if (headerHeight) {
+      const transform = this.animatedValues.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-headerHeight, 0],
+        extrapolate: "clamp"
+      });
+      const height = this.animatedValues.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, headerHeight],
+        extrapolate: "clamp"
+      });
+      return (
+        <View
+          style={[styles.container, this.props.style]}
+          onLayout={this._handleLayout}
+        >
+          <Animated.View
+            style={{ height: height, transform: [{ translateY: transform }] }}
+          >
+            {this.props.renderHeader()}
+          </Animated.View>
+          <View style={{ flex: 1 }}>
+            {this.props.tabBarPosition === "top" &&
+              this.renderTabBar(tabBarProps)}
+            {this.renderScrollableContent()}
+            {(this.props.tabBarPosition === "bottom" || overlayTabs) &&
+              this.renderTabBar(tabBarProps)}
+          </View>
+        </View>
+      );
+    }
     return (
       <View
         style={[styles.container, this.props.style]}
