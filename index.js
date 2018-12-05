@@ -186,6 +186,9 @@ const ScrollableTabView = createReactClass({
     } else if (this.props.renderTabBar) {
       return React.cloneElement(this.props.renderTabBar(props), props);
     } else {
+      if (this.props.tabbarScrollable) {
+        return <ScrollableTabBar {...props} />;
+      }
       return <DefaultTabBar {...props} />;
     }
   },
