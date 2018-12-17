@@ -199,9 +199,6 @@ const ScrollableTabBar = createReactClass({
       left: this.state._leftTabUnderline,
       width: this.state._widthTabUnderline
     };
-
-    console.log(this.state._minWidth);
-
     return (
       <View
         style={[
